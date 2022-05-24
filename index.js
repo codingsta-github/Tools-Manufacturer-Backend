@@ -18,12 +18,28 @@ async function run() {
   try {
     client.connect();
     const toolsCollection = client.db("tools-manufacturer").collection("tools");
+    const usersCollection = client.db("tools-manufacturer").collection("users");
+    
+    
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
       const results = await cursor.toArray();
       res.send(results)
     });
+
+app.put('/user/:email',async(req,res)=>{
+  const email=req.params.email
+  const user=req.body
+  const filter={email:email}
+  const options={upsert:true}
+  const updateDoc={
+    $set:user,
+  }
+  const results=await usersCollection.updateOne(filter,updateDoc,options)
+  res.send(results)
+})
+
   } finally {
   }
 }
