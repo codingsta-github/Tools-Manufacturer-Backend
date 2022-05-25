@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { query } = require("express");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -17,12 +17,34 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+  if (!authHeader) {
+    return res.status(401).send({ message: "unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(
+    token,
+    "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
+    function (err, decoded) {
+      if (err) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      req.decoded = decoded;
+      next();
+    }
+  );
+}
+
 async function run() {
   try {
     client.connect();
     const toolsCollection = client.db("tools-manufacturer").collection("tools");
     const usersCollection = client.db("tools-manufacturer").collection("users");
-    const ordersCollection = client.db("tools-manufacturer").collection("orders");
+    const ordersCollection = client
+      .db("tools-manufacturer")
+      .collection("orders");
 
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -34,7 +56,7 @@ async function run() {
     app.get("/tool/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const result =await toolsCollection.findOne(query);    
+      const result = await toolsCollection.findOne(query);
       res.send(result);
     });
 
@@ -51,28 +73,32 @@ async function run() {
         updateDoc,
         options
       );
-      const token = jwt.sign({ email: email }, '3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472',{expiresIn:'1h'});
-      res.send({results,token});
+      const token = jwt.sign(
+        { email: email },
+        "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
+        { expiresIn: "1h" }
+      );
+      res.send({ results, token });
     });
 
-
-    app.post('/order', async (req,res)=>{
-      const order=req.body
-      const results=await ordersCollection.insertOne(order)
-      res.send(results)
-    })
-
-
-    app.get("/orders", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const cursor = ordersCollection.find(query);
-      const results = await cursor.toArray();
+    app.post("/order", async (req, res) => {
+      const order = req.body;
+      const results = await ordersCollection.insertOne(order);
       res.send(results);
+    });
 
-    })
-  }
-   finally {
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const decodedEmail = req.decoded.email;
+      if (decodedEmail === email) {
+        const query = { email: email };
+        const results = await ordersCollection.find(query).toArray();
+
+        res.send(results);
+      }
+      
+    });
+  } finally {
   }
 }
 run().catch(console.dir);
