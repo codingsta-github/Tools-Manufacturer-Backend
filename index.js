@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { query } = require("express");
+const jwt = require('jsonwebtoken');
+
 const app = express();
 const port = process.env.PORT || 5000;
 app.use(cors());
@@ -48,7 +50,8 @@ async function run() {
         updateDoc,
         options
       );
-      res.send(results);
+      const token = jwt.sign({ email: email }, '3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472',{expiresIn:'1h'});
+      res.send({results,token});
     });
   } finally {
   }
