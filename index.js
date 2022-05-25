@@ -22,6 +22,7 @@ async function run() {
     client.connect();
     const toolsCollection = client.db("tools-manufacturer").collection("tools");
     const usersCollection = client.db("tools-manufacturer").collection("users");
+    const ordersCollection = client.db("tools-manufacturer").collection("orders");
 
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -53,7 +54,25 @@ async function run() {
       const token = jwt.sign({ email: email }, '3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472',{expiresIn:'1h'});
       res.send({results,token});
     });
-  } finally {
+
+
+    app.post('/order', async (req,res)=>{
+      const order=req.body
+      const results=await ordersCollection.insertOne(order)
+      res.send(results)
+    })
+
+
+    app.get("/orders", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const cursor = ordersCollection.find(query);
+      const results = await cursor.toArray();
+      res.send(results);
+
+    })
+  }
+   finally {
   }
 }
 run().catch(console.dir);
