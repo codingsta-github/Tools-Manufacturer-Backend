@@ -75,14 +75,21 @@ async function run() {
       res.send(results);
     });
 
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({email:email});
+      const isAdmin = user.role === "admin";
+      console.log(isAdmin)
+      res.send({admin:isAdmin})
+    });
     app.put("/user/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const updateDoc = {
         $set: { role: "admin" },
       };
-      const results=await usersCollection.updateOne(query,updateDoc)
-      res.send(results)
+      const results = await usersCollection.updateOne(query, updateDoc);
+      res.send(results);
     });
 
     app.put("/user/:email", async (req, res) => {
