@@ -72,6 +72,16 @@ async function run() {
 
     app.get("/users", async (req, res) => {
       const results = await usersCollection.find().toArray();
+      res.send(results);
+    });
+
+    app.put("/user/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const results=await usersCollection.updateOne(query,updateDoc)
       res.send(results)
     });
 
