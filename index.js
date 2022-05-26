@@ -45,6 +45,12 @@ async function run() {
       .db("tools-manufacturer")
       .collection("orders");
 
+    app.post("/tool", async (req, res) => {
+      const newTool = req.body;
+      const result = await toolsCollection.insertOne(newTool);
+      res.send(result);
+    });
+
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
@@ -58,8 +64,12 @@ async function run() {
       const result = await toolsCollection.findOne(query);
       res.send(result);
     });
-
-    app.get("/orders", verifyJWT, async (req, res) => {
+    app.get("/orders", async (req, res) => {
+      const query = {};
+      const results = await ordersCollection.find(query).toArray();
+      res.send(results);
+    });
+    app.get("/myOrders", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const decodedEmail = req.decoded.email;
       if (decodedEmail === email) {
@@ -77,10 +87,10 @@ async function run() {
 
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
-      const user = await usersCollection.findOne({email:email});
+      const user = await usersCollection.findOne({ email: email });
       const isAdmin = user.role === "admin";
-      console.log(isAdmin)
-      res.send({admin:isAdmin})
+      console.log(isAdmin);
+      res.send({ admin: isAdmin });
     });
     app.put("/user/admin/:email", async (req, res) => {
       const email = req.params.email;
