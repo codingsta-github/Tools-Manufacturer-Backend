@@ -10,13 +10,57 @@ app.use(cors());
 app.use(express.json());
 
 const uri =
-  "mongodb+srv://Tools_manufacturer:lVlN0B50YQNcM0Kt@cluster0.0c3su.mongodb.net/?retryWrites=true&w=majority";
+  "mongodb+srv://DB_USER:DB_PASS@cluster0.0c3su.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
 
+
+function sendPaymentConfirmationEmail(booking) {
+  const { patient, patientName, treatment, date, slot } = booking;
+
+  var email = {
+    from: process.env.EMAIL_SENDER,
+    to: patient,
+    subject: `We have received your payment for ${treatment} is on ${date} at ${slot} is Confirmed`,
+    text: `Your payment for this Appointment ${treatment} is on ${date} at ${slot} is Confirmed`,
+    html: `
+      <div>
+        <p> Hello ${patientName}, </p>
+        <h3>Thank you for your payment . </h3>
+        <h3>We have received your payment</h3>
+        <p>Looking forward to seeing you on ${date} at ${slot}.</p>
+        <h3>Our Address</h3>
+        <p>Andor Killa Bandorban</p>
+        <p>Bangladesh</p>
+        <a href="https://web.programming-hero.com/">unsubscribe</a>
+      </div>
+    `
+  };
+
+  emailClient.sendMail(email, function (err, info) {
+    if (err) {
+      console.log(err);
+    }
+    else {
+      console.log('Message sent: ', info);
+    }
+  });
+
+}
+
+
+
+
+
+
+
+
+
+
+//json web token verification
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -25,7 +69,7 @@ function verifyJWT(req, res, next) {
   const token = authHeader.split(" ")[1];
   jwt.verify(
     token,
-    "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
+    ACCESS_TOKEN_SECRET,
     function (err, decoded) {
       if (err) {
         return res.status(403).send({ message: "forbidden access" });
@@ -45,12 +89,21 @@ async function run() {
       .db("tools-manufacturer")
       .collection("orders");
 
+    //Creating tools by admin
     app.post("/tool", async (req, res) => {
       const newTool = req.body;
       const result = await toolsCollection.insertOne(newTool);
       res.send(result);
     });
 
+    //Placing Order by user
+    app.post("/order", async (req, res) => {
+      const order = req.body;
+      const results = await ordersCollection.insertOne(order);
+      res.send(results);
+    });
+
+    //read all data
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
@@ -58,17 +111,22 @@ async function run() {
       res.send(results);
     });
 
+    //read single data for placing an order
     app.get("/tool/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await toolsCollection.findOne(query);
       res.send(result);
     });
+
+    //read all orders by admin for managing
     app.get("/orders", async (req, res) => {
       const query = {};
       const results = await ordersCollection.find(query).toArray();
       res.send(results);
     });
+
+    //read single order by user for managing
     app.get("/myOrders", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const decodedEmail = req.decoded.email;
@@ -80,11 +138,13 @@ async function run() {
       }
     });
 
+    //read user data by admin
     app.get("/users", async (req, res) => {
       const results = await usersCollection.find().toArray();
       res.send(results);
     });
 
+    //read is an user admin or not
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await usersCollection.findOne({ email: email });
@@ -92,6 +152,8 @@ async function run() {
       console.log(isAdmin);
       res.send({ admin: isAdmin });
     });
+
+    //update an user as admin
     app.put("/user/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -101,7 +163,7 @@ async function run() {
       const results = await usersCollection.updateOne(query, updateDoc);
       res.send(results);
     });
-
+    // create unique user
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -117,18 +179,13 @@ async function run() {
       );
       const token = jwt.sign(
         { email: email },
-        "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
+        ACCESS_TOKEN_SECRET,
         { expiresIn: "1d" }
       );
       res.send({ results, token });
     });
 
-    app.post("/order", async (req, res) => {
-      const order = req.body;
-      const results = await ordersCollection.insertOne(order);
-      res.send(results);
-    });
-
+    //delete order by admin
     app.delete("/myOrder/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -136,19 +193,44 @@ async function run() {
       const result = await ordersCollection.deleteOne(query);
       res.send(result);
     });
+
+    //delete data by admin
     app.delete("/tool/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await toolsCollection.deleteOne(query);
       res.send(result);
     });
-
+    //delete user by admin
     app.delete("/user/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
+
+    app.post('/create-payment-intent', verifyJWT, async(req, res) =>{
+      const service = req.body;
+      const price = service.price;
+      const amount = price*100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount : amount,
+        currency: 'usd',
+        payment_method_types:['card']
+      });
+      res.send({clientSecret: paymentIntent.client_secret})
+    });
+    app.patch('/booking/:id', verifyJWT, async(req, res) =>{
+      const id  = req.params.id;
+      const payment = req.body;
+      const filter = {_id: ObjectId(id)};
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId
+        }
+      }
+    })
   } finally {
   }
 }
