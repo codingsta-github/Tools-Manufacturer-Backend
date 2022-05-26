@@ -19,7 +19,6 @@ const client = new MongoClient(uri, {
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  console.log(authHeader);
   if (!authHeader) {
     return res.status(401).send({ message: "unauthorized" });
   }
@@ -60,6 +59,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const decodedEmail = req.decoded.email;
+      if (decodedEmail === email) {
+        const query = { email: email };
+        const results = await ordersCollection.find(query).toArray();
+
+        res.send(results);
+      }
+    });
+
+    app.get("/users", async (req, res) => {
+      const results = await usersCollection.find().toArray();
+      res.send(results)
+    });
+
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -76,7 +91,7 @@ async function run() {
       const token = jwt.sign(
         { email: email },
         "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
-        { expiresIn: "1h" }
+        { expiresIn: "1d" }
       );
       res.send({ results, token });
     });
@@ -85,18 +100,6 @@ async function run() {
       const order = req.body;
       const results = await ordersCollection.insertOne(order);
       res.send(results);
-    });
-
-    app.get("/orders", verifyJWT, async (req, res) => {
-      const email = req.query.email;
-      const decodedEmail = req.decoded.email;
-      if (decodedEmail === email) {
-        const query = { email: email };
-        const results = await ordersCollection.find(query).toArray();
-
-        res.send(results);
-      }
-      
     });
   } finally {
   }
