@@ -18,24 +18,19 @@ const client = new MongoClient(uri, {
 });
 
 
-function sendPaymentConfirmationEmail(booking) {
-  const { patient, patientName, treatment, date, slot } = booking;
+function sendPaymentConfirmationEmail(order) {
+  const { tool, name} = booking;
 
   var email = {
     from: process.env.EMAIL_SENDER,
     to: patient,
-    subject: `We have received your payment for ${treatment} is on ${date} at ${slot} is Confirmed`,
-    text: `Your payment for this Appointment ${treatment} is on ${date} at ${slot} is Confirmed`,
+    subject: `We have received your payment for ${tool} isConfirmed`,
+    text: `Your order for ${tool} is  Confirmed`,
     html: `
       <div>
-        <p> Hello ${patientName}, </p>
+        <p> Hello ${tool}, </p>
         <h3>Thank you for your payment . </h3>
         <h3>We have received your payment</h3>
-        <p>Looking forward to seeing you on ${date} at ${slot}.</p>
-        <h3>Our Address</h3>
-        <p>Andor Killa Bandorban</p>
-        <p>Bangladesh</p>
-        <a href="https://web.programming-hero.com/">unsubscribe</a>
       </div>
     `
   };
