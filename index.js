@@ -10,50 +10,12 @@ app.use(cors());
 app.use(express.json());
 
 const uri =
-  "mongodb+srv://DB_USER:DB_PASS@cluster0.0c3su.mongodb.net/?retryWrites=true&w=majority";
+  "mongodb+srv://Tools_manufacturer:lVlN0B50YQNcM0Kt@cluster0.0c3su.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-
-
-function sendPaymentConfirmationEmail(order) {
-  const { tool, name} = booking;
-
-  var email = {
-    from: process.env.EMAIL_SENDER,
-    to: patient,
-    subject: `We have received your payment for ${tool} isConfirmed`,
-    text: `Your order for ${tool} is  Confirmed`,
-    html: `
-      <div>
-        <p> Hello ${tool}, </p>
-        <h3>Thank you for your payment . </h3>
-        <h3>We have received your payment</h3>
-      </div>
-    `
-  };
-
-  emailClient.sendMail(email, function (err, info) {
-    if (err) {
-      console.log(err);
-    }
-    else {
-      console.log('Message sent: ', info);
-    }
-  });
-
-}
-
-
-
-
-
-
-
-
-
 
 //json web token verification
 function verifyJWT(req, res, next) {
@@ -64,7 +26,7 @@ function verifyJWT(req, res, next) {
   const token = authHeader.split(" ")[1];
   jwt.verify(
     token,
-    ACCESS_TOKEN_SECRET,
+    "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
     function (err, decoded) {
       if (err) {
         return res.status(403).send({ message: "forbidden access" });
@@ -83,6 +45,16 @@ async function run() {
     const ordersCollection = client
       .db("tools-manufacturer")
       .collection("orders");
+    const reviewsCollection = client
+      .db("tools-manufacturer")
+      .collection("reviews");
+
+    app.get("/order/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await ordersCollection.findOne(query);
+      res.send(result);
+    });
 
     //Creating tools by admin
     app.post("/tool", async (req, res) => {
@@ -98,6 +70,13 @@ async function run() {
       res.send(results);
     });
 
+    //placing a review by user
+    app.post("/review", async (req, res) => {
+      const review = req.body;
+      const results = await reviewsCollection.insertOne(review);
+      res.send(results);
+    });
+
     //read all data
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -106,6 +85,13 @@ async function run() {
       res.send(results);
     });
 
+    //read all reviews
+    app.get("/reviews", async (req, res) => {
+      const query = {};
+      const results = await reviewsCollection.find(query).toArray();
+      res.send(results);
+    });
+    
     //read single data for placing an order
     app.get("/tool/:id", async (req, res) => {
       const id = req.params.id;
@@ -174,7 +160,7 @@ async function run() {
       );
       const token = jwt.sign(
         { email: email },
-        ACCESS_TOKEN_SECRET,
+        "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
         { expiresIn: "1d" }
       );
       res.send({ results, token });
@@ -203,29 +189,6 @@ async function run() {
       const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
-
-    app.post('/create-payment-intent', verifyJWT, async(req, res) =>{
-      const service = req.body;
-      const price = service.price;
-      const amount = price*100;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount : amount,
-        currency: 'usd',
-        payment_method_types:['card']
-      });
-      res.send({clientSecret: paymentIntent.client_secret})
-    });
-    app.patch('/booking/:id', verifyJWT, async(req, res) =>{
-      const id  = req.params.id;
-      const payment = req.body;
-      const filter = {_id: ObjectId(id)};
-      const updatedDoc = {
-        $set: {
-          paid: true,
-          transactionId: payment.transactionId
-        }
-      }
-    })
   } finally {
   }
 }
