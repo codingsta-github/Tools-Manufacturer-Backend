@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { query } = require("express");
 const jwt = require("jsonwebtoken");
@@ -11,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 const uri =
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0c3su.mongodb.net/?retryWrites=true&w=majority`;
+  "mongodb+srv://Tools_manufacturer:lVlN0B50YQNcM0Kt@cluster0.0c3su.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -27,7 +26,7 @@ function verifyJWT(req, res, next) {
   const token = authHeader.split(" ")[1];
   jwt.verify(
     token,
-    process.env.ACCESS_TOKEN_SECRET,
+    "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
     function (err, decoded) {
       if (err) {
         return res.status(403).send({ message: "forbidden access" });
@@ -92,7 +91,7 @@ async function run() {
       const results = await reviewsCollection.find(query).toArray();
       res.send(results);
     });
-
+    
     //read single data for placing an order
     app.get("/tool/:id", async (req, res) => {
       const id = req.params.id;
@@ -161,7 +160,7 @@ async function run() {
       );
       const token = jwt.sign(
         { email: email },
-        process.env.ACCESS_TOKEN_SECRET,
+        "3abb0eb5b8e2b95caa9543183b8f15f855a21d4d0a54e465b62cbcfa2b08bbb3ca855c7f39981b65ec7a953740d891be9248c5958de59315444ff4e6c8ab3472",
         { expiresIn: "1d" }
       );
       res.send({ results, token });

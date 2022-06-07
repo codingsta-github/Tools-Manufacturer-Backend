@@ -6,5 +6,17 @@
     "jsonwebtoken": "^8.5.1",
     "mongodb": "^4.5.0",
     "nodemon": "^2.0.16"
-  }
+  },
+  "name": "tools-manufacturer-backend",
+  "description": "* Everyone can see company's new tools collections but to order collections they need to login with their credentials. * In this website I've used one of the best authentication system for login  * In this website there is also jwt system to secure website more. * There is MongoDB database system for website database which makes website more reliable * I've used on of the best server side framework Express.js for the server side. * Last but not the lest, I've used worlds best front-end library for the website.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "start":"node index.js",
+    "start-dev":"nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
 }
